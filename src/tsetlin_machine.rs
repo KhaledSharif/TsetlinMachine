@@ -7,7 +7,7 @@ pub struct TsetlinMachine
 {
     input_states  : Vec<bool>,
     output_states : Vec<bool>,
-    outputs       : Vec<Output>
+    outputs       : Vec<Output>,
 }
 
 pub fn tsetlin_machine() -> TsetlinMachine
@@ -16,7 +16,7 @@ pub fn tsetlin_machine() -> TsetlinMachine
     {
         input_states  : Vec::new(),
         output_states : Vec::new(),
-        outputs       : Vec::new()
+        outputs       : Vec::new(),
     }
 }
 
@@ -49,13 +49,13 @@ impl TsetlinMachine
         {
             let input : bool = if ai >= self.input_states.len() {!self.input_states[ai - self.input_states.len()]} else {self.input_states[ai]};
             let inclusion : bool = self.outputs[oi].clauses[ci].automata_states[ai] > 0;
+            let s : f32 = rng.sample(Uniform);
             if clause_state
             {
                 if input
                 {
                     if inclusion
                     {
-                        let s : f32 = rng.sample(Uniform);
                         if s < s_inverse_conjugate
                         {
                             self.outputs[oi].clauses[ci].automata_states[ai] += 1;
@@ -64,7 +64,6 @@ impl TsetlinMachine
                     }
                     else
                     {
-                        let s : f32 = rng.sample(Uniform);
                         if s < s_inverse_conjugate
                         {
                             self.outputs[oi].clauses[ci].automata_states[ai] += 1;
@@ -74,18 +73,10 @@ impl TsetlinMachine
                 }
                 else
                 {
-                    if inclusion
+                    if !inclusion && s < s_inverse
                     {
-                        // NA
-                    }
-                    else
-                    {
-                        let s : f32 = rng.sample(Uniform);
-                        if s < s_inverse
-                        {
-                            self.outputs[oi].clauses[ci].automata_states[ai] -= 1;
-                            self.inclusion_update(oi, ci, ai);
-                        }
+                        self.outputs[oi].clauses[ci].automata_states[ai] -= 1;
+                        self.inclusion_update(oi, ci, ai);
                     }
                 }
             }
@@ -95,7 +86,6 @@ impl TsetlinMachine
                 {
                     if inclusion
                     {
-                        let s : f32 = rng.sample(Uniform);
                         if s < s_inverse
                         {
                             self.outputs[oi].clauses[ci].automata_states[ai] -= 1;
@@ -104,7 +94,6 @@ impl TsetlinMachine
                     }
                     else
                     {
-                        let s : f32 = rng.sample(Uniform);
                         if s < s_inverse
                         {
                             self.outputs[oi].clauses[ci].automata_states[ai] -= 1;
@@ -115,7 +104,6 @@ impl TsetlinMachine
                 else {
                     if inclusion
                     {
-                        let s : f32 = rng.sample(Uniform);
                         if s < s_inverse
                         {
                             self.outputs[oi].clauses[ci].automata_states[ai] -= 1;
@@ -124,7 +112,6 @@ impl TsetlinMachine
                     }
                     else
                     {
-                        let s : f32 = rng.sample(Uniform);
                         if s < s_inverse
                         {
                             self.outputs[oi].clauses[ci].automata_states[ai] -= 1;
@@ -175,46 +162,37 @@ impl TsetlinMachine
             let clamped_sum : f32 = t.min((-t).max(self.outputs[oi].sum as f32));
             let rescale : f32 = 1.0 / ((2.0 * t) as f32);
             let probability_feedback_alpha : f32 = (t - clamped_sum) * rescale;
-            let probability_feedback_beta : f32 = (t + clamped_sum) * rescale;
+            let probability_feedback_beta  : f32 = (t + clamped_sum) * rescale;
 
             for ci in 0..self.outputs[oi].clauses.len()
             {
+                let s : f32 = rng.sample(Uniform);
                 if ci % 2 == 0
                 {
                     if target_output_states[oi]
                     {
-                        let s : f32 = rng.sample(Uniform);
                         if s < probability_feedback_alpha
                         {
                             self.modify_phase_one(oi, ci, s_inv, s_inv_conj, rng);
                         }
                     }
-                    else
+                    else if s < probability_feedback_beta
                     {
-                        let s : f32 = rng.sample(Uniform);
-                        if s < probability_feedback_beta
-                        {
-                            self.modify_phase_two(oi, ci);
-                        }
+                        self.modify_phase_two(oi, ci);
                     }
                 }
                 else
                 {
                     if target_output_states[oi]
                     {
-                        let s : f32 = rng.sample(Uniform);
                         if s < probability_feedback_alpha
                         {
                             self.modify_phase_two(oi, ci);
                         }
                     }
-                    else
+                    else if s < probability_feedback_beta
                     {
-                        let s : f32 = rng.sample(Uniform);
-                        if s < probability_feedback_beta
-                        {
-                            self.modify_phase_one(oi, ci, s_inv, s_inv_conj, rng);
-                        }
+                        self.modify_phase_one(oi, ci, s_inv, s_inv_conj, rng);
                     }
                 }
             }
@@ -252,7 +230,7 @@ impl TsetlinMachine
                 let _state : i32 = if state {1} else {0};
                 sum += if ci % 2 == 0 {_state} else {-_state};
             }
-            self.outputs[oi].sum  = sum;
+            self.outputs[oi].sum   = sum;
             self.output_states[oi] = sum > 0;
         }
         return &self.output_states;
@@ -263,13 +241,13 @@ struct Clause
 {
     automata_states : Vec<i32>,
     inclusions      : Vec<usize>,
-    state           : bool
+    state           : bool,
 }
 
 struct Output
 {
     clauses : Vec<Clause>,
-    sum     : i32
+    sum     : i32,
 }
 
 fn create_null_output() -> Output
@@ -277,7 +255,7 @@ fn create_null_output() -> Output
     Output
     {
         clauses: create_null_clauses_vector(),
-        sum: 0
+        sum: 0,
     }
 }
 
@@ -292,7 +270,7 @@ fn create_null_clause() -> Clause
     {
         automata_states: Vec::new(),
         inclusions: Vec::new(),
-        state: false
+        state: false,
     }
 }
 
