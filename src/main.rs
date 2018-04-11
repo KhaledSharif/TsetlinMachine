@@ -1,7 +1,7 @@
 extern crate rand;
 use rand::thread_rng;
 
-mod tsetlin_machine;
+extern crate tsetlin_machine;
 use tsetlin_machine::tsetlin_machine;
 
 extern crate csv;
