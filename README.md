@@ -6,6 +6,21 @@ propositional formulas, and is composed of a collective of
 the machine was proposed in
 [a paper by Ole-Christoffer Granmo](https://arxiv.org/abs/1804.01508).
 
+## Running the XOR test
+
+```
+git clone https://github.com/KhaledSharif/TsetlinMachine.git
+cd TsetlinMachine
+cargo test
+```
+
+## Training and testing on MNIST
+
+- Get [the MNIST data from Kaggle](https://www.kaggle.com/c/digit-recognizer/data) in CSV form
+- Create a folder called `mnist` in the same folder that contains `src` and `tests`
+- Copy `train.csv` and `test.csv` into the newly created `mnist` folder
+- Run `cargo run` from the repository root folder
+
 ## Example code
 
 ```rust
