@@ -7,15 +7,109 @@ use tsetlin_machine::tsetlin_machine;
 extern crate csv;
 use csv::Reader;
 
+fn main()
+{
+    let training_file_path = "mnist/train.csv";
+    let testing_file_path  = "mnist/test.csv";
+
+    let (training_inputs, training_outputs) = read(training_file_path);
+
+    println!("Training dataset");
+    println!("Inputs  length: {}, Inputs[0]  length: {}", training_inputs.len(),  training_inputs[0].len());
+    println!("Outputs length: {}, Outputs[0] length: {}", training_outputs.len(), training_outputs[0].len());
+
+    let (testing_inputs, testing_outputs)   = read(testing_file_path);
+
+    println!("Testing dataset");
+    println!("Inputs  length: {}, Inputs[0]  length: {}", testing_inputs.len(),  testing_inputs[0].len());
+    println!("Outputs length: {}, Outputs[0] length: {}", testing_outputs.len(), testing_outputs[0].len());
+
+    let mut tm = tsetlin_machine();
+    tm.create(training_inputs[0].len(), training_outputs[0].len(), 10);
+
+    let mut rng = thread_rng();
+    let mut average_training_error : f32 = 1.0;
+    let mut average_testing_error  : f32 = 1.0;
+
+    loop
+    {
+        for e in 0 .. (training_inputs.len() - 1)
+        {
+            let expected_output_vector = &training_outputs[e];
+            {
+                {
+                    let input_vector           = &training_inputs[e];
+                    let correct            = check_two_vectors(expected_output_vector, tm.activate(input_vector.to_vec()));
+                    average_training_error = 0.99 * average_training_error + 0.01 * (if !correct {1.0} else {0.0});
+                }
+
+                if e % 10 == 0
+                {
+                    println!(
+                        "{}% of training dataset | {}% training accuracy",
+                        (e as f32 / training_inputs.len() as f32) * 100.0,
+                        (1.0 - average_training_error) * 100.0,
+                    );
+                }
+            }
+            tm.learn(expected_output_vector, 4.0, 4.0, &mut rng);
+        }
+
+        for f in 0 .. (testing_inputs.len() - 1)
+        {
+            let expected_output_vector = &testing_outputs[f];
+            {
+                {
+                    let input_vector           = &testing_inputs[f];
+                    let correct           = check_two_vectors(expected_output_vector, tm.activate(input_vector.to_vec()));
+                    average_testing_error = 0.99 * average_testing_error + 0.01 * (if !correct {1.0} else {0.0});
+                }
+
+                if f % 10 == 0
+                {
+                    println!(
+                        "{}% of testing dataset | {}% testing accuracy",
+                        (f as f32 / testing_inputs.len() as f32) * 100.0,
+                        (1.0 - average_testing_error) * 100.0,
+                    );
+                }
+            }
+        }
+    }
+}
+
 struct LabelWithData
 {
     label : Vec<bool>,
     data  : Vec<bool>,
 }
 
-fn main()
+type BooleanMatrix = Vec<Vec<bool>>;
+type BooleanMatrixTuple = (BooleanMatrix, BooleanMatrix);
+
+fn read(file_path : &str) -> BooleanMatrixTuple
 {
-    let file_path = "/home/khaled/mnist/train.csv";
+    fn one_hot_encoder(n: u16) -> Vec<bool>
+    {
+        let mut m : Vec<bool> = (0..).take(10).map(|_x| false).collect();
+        m[n as usize] = true;
+        return m;
+    }
+
+    fn converter(list: Vec<LabelWithData>) -> BooleanMatrixTuple
+    {
+        let mut inputs  : BooleanMatrix = Vec::new();
+        let mut outputs : BooleanMatrix = Vec::new();
+
+        for l in list
+        {
+            inputs.push(l.data);
+            outputs.push(l.label);
+        }
+
+        (inputs, outputs)
+    }
+
     let rdr_with_error = Reader::from_path(file_path);
     assert!(!rdr_with_error.is_err());
 
@@ -44,32 +138,8 @@ fn main()
             }
         }
     }
-    let (inputs, outputs) = converter(training_data);
 
-    println!("Inputs  length: {}, Inputs[0]  length: {}", inputs.len(),  inputs[0].len());
-    println!("Outputs length: {}, Outputs[0] length: {}", outputs.len(), outputs[0].len());
-
-    let mut tm = tsetlin_machine();
-    tm.create(inputs[0].len(), outputs[0].len(), 1000);
-
-    let mut rng = thread_rng();
-    let mut average_error : f32 = 1.0;
-
-    for e in 0..
-    {
-        let input_vector           = &inputs[e % inputs.len()];
-        let expected_output_vector = &outputs[e % outputs.len()];
-        {
-            let output_vector = tm.activate(input_vector.to_vec());
-            let correct       = check_two_vectors(expected_output_vector, output_vector);
-            average_error     = 0.99 * average_error + 0.01 * (if !correct {1.0} else {0.0});
-            if e % 10 == 0
-            {
-                println!("{} | {}%", e, (1.0 - average_error) * 100.0);
-            }
-        }
-        tm.learn(expected_output_vector, 4.0, 4.0, &mut rng);
-    }
+    converter(training_data)
 }
 
 fn check_two_vectors(y_true : &Vec<bool>, y_pred : &Vec<bool>) -> bool
@@ -85,25 +155,4 @@ fn check_two_vectors(y_true : &Vec<bool>, y_pred : &Vec<bool>) -> bool
         }
     }
     return true;
-}
-
-fn one_hot_encoder(n: u16) -> Vec<bool>
-{
-    let mut m : Vec<bool> = (0..).take(10).map(|_x| false).collect();
-    m[n as usize] = true;
-    return m;
-}
-
-fn converter(list: Vec<LabelWithData>) -> (Vec<Vec<bool>>, Vec<Vec<bool>>)
-{
-    let mut inputs : Vec<Vec<bool>> = Vec::new();
-    let mut outputs : Vec<Vec<bool>> = Vec::new();
-
-    for l in list
-    {
-        inputs.push(l.data);
-        outputs.push(l.label);
-    }
-
-    (inputs, outputs)
 }

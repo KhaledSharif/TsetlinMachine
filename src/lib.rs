@@ -201,6 +201,7 @@ impl TsetlinMachine
 
     pub fn activate(&mut self, input_states : Vec<bool>) -> &Vec<bool>
     {
+        use std::cmp::min;
         self.input_states = input_states;
         for oi in 0..self.outputs.len()
         {
@@ -212,21 +213,18 @@ impl TsetlinMachine
                     let y = &mut self.outputs[oi].clauses[ci];
                     for cit in y.inclusions.iter()
                     {
-                        if cit >= &self.input_states.len()
+                        let ai : usize = *cit;
+                        if ai >= self.input_states.len()
                         {
-                            state = state && !self.input_states[cit - self.input_states.len()];
+                            state = state && !self.input_states[min(self.input_states.len() - 1, ai - self.input_states.len())];
                         }
                         else
                         {
-                            state = state && self.input_states[*cit];
+                            state = state && self.input_states[ai];
                         }
                     }
                 }
-
-                {
-                    self.outputs[oi].clauses[ci].state = state;
-                }
-
+                self.outputs[oi].clauses[ci].state = state;
                 let _state : i32 = if state {1} else {0};
                 sum += if ci % 2 == 0 {_state} else {-_state};
             }
@@ -274,9 +272,9 @@ fn create_null_clause() -> Clause
     }
 }
 
-impl Clone for Output 
+impl Clone for Output
 {
-    fn clone(&self) -> Output 
+    fn clone(&self) -> Output
     {
         let m : Output;
         {
@@ -291,9 +289,9 @@ impl Clone for Output
     }
 }
 
-impl Clone for Clause 
+impl Clone for Clause
 {
-    fn clone(&self) -> Clause 
+    fn clone(&self) -> Clause
     {
         let m : Clause;
         {

@@ -35,7 +35,7 @@ fn test_xor_convergence()
     let mut rng = thread_rng();
     let mut average_error : f32 = 1.0;
 
-    for e in 0..1000
+    for e in 0..5000
     {
         let input_vector = &inputs[e % 4];
         {
@@ -52,7 +52,11 @@ fn test_xor_convergence()
             average_error = 0.99 * average_error + 0.01 * (if !correct {1.0} else {0.0});
         }
         tm.learn(&outputs[e % 4], 4.0, 4.0, &mut rng);
+        if average_error < 0.01
+        {
+            break;
+        }
     }
 
-    assert!(average_error < 0.0005);
+    assert!(average_error < 0.01);
 }
