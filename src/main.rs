@@ -38,7 +38,7 @@ fn main()
             let expected_output_vector = &training_outputs[e];
             {
                 {
-                    let input_vector           = &training_inputs[e];
+                    let input_vector       = &training_inputs[e];
                     let correct            = check_two_vectors(expected_output_vector, tm.activate(input_vector.to_vec()));
                     average_training_error = 0.99 * average_training_error + 0.01 * (if !correct {1.0} else {0.0});
                 }
@@ -60,7 +60,7 @@ fn main()
             let expected_output_vector = &testing_outputs[f];
             {
                 {
-                    let input_vector           = &testing_inputs[f];
+                    let input_vector      = &testing_inputs[f];
                     let correct           = check_two_vectors(expected_output_vector, tm.activate(input_vector.to_vec()));
                     average_testing_error = 0.99 * average_testing_error + 0.01 * (if !correct {1.0} else {0.0});
                 }

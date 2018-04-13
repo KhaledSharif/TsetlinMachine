@@ -8,11 +8,11 @@ the machine was proposed in
 
 ## Running the XOR test
 
-```
-git clone https://github.com/KhaledSharif/TsetlinMachine.git
-cd TsetlinMachine
-cargo test
-```
+
+- Clone this repository using `git clone https://github.com/KhaledSharif/TsetlinMachine.git`
+- Inside the repository root folder, run `cargo test`
+- The test will run the XOR example found in `tests/xor.rs`
+- The test will only pass if the Tsetlin Machine reaches an accuracy greater than 99% on XOR
 
 ## Training and testing on MNIST
 
@@ -20,8 +20,9 @@ cargo test
 - Create a folder called `mnist` in the same folder that contains `src` and `tests`
 - Copy `train.csv` and `test.csv` into the newly created `mnist` folder
 - Run `cargo run` from the repository root folder
+- Read the code inside `src/main.rs` to get a better understanding
 
-## Example code
+## Example XOR code
 
 ```rust
 let mut tm = tsetlin_machine();
@@ -51,7 +52,7 @@ for e in 0..1000
 }
 ```
 
-## Example output
+## Example XOR output
 
 ```
 true true -> false true   | 0.00007643679
