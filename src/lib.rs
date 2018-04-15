@@ -2,6 +2,7 @@ extern crate rand;
 use rand::Rng;
 use rand::ThreadRng;
 use rand::distributions::Uniform;
+use std::cmp::min;
 
 pub struct TsetlinMachine
 {
@@ -10,21 +11,21 @@ pub struct TsetlinMachine
     outputs       : Vec<Output>,
 }
 
-pub fn tsetlin_machine() -> TsetlinMachine
-{
-    TsetlinMachine
-    {
-        input_states  : Vec::new(),
-        output_states : Vec::new(),
-        outputs       : Vec::new(),
-    }
-}
-
 impl TsetlinMachine
 {
+    pub fn new() -> TsetlinMachine
+    {
+        TsetlinMachine
+        {
+            input_states  : Vec::new(),
+            output_states : Vec::new(),
+            outputs       : Vec::new(),
+        }
+    }
+
     fn inclusion_update(&mut self, oi : usize, ci : usize, ai : usize)
     {
-        let inclusion : bool = self.outputs[oi].clauses[ci].automata_states[ai] > 0;
+        let inclusion = self.outputs[oi].clauses[ci].automata_states[ai] > 0;
         let it = self.outputs[oi].clauses[ci].inclusions.iter().position(|&s| s == ai);
         if inclusion
         {
@@ -44,11 +45,11 @@ impl TsetlinMachine
 
     fn modify_phase_one(&mut self, oi : usize, ci : usize, s_inverse : f32, s_inverse_conjugate : f32, rng : &mut ThreadRng)
     {
-        let clause_state : bool = self.outputs[oi].clauses[ci].state;
+        let clause_state = self.outputs[oi].clauses[ci].state;
         for ai in 0..self.outputs[oi].clauses[ci].automata_states.len()
         {
-            let input : bool = if ai >= self.input_states.len() {!self.input_states[ai - self.input_states.len()]} else {self.input_states[ai]};
-            let inclusion : bool = self.outputs[oi].clauses[ci].automata_states[ai] > 0;
+            let input = if ai >= self.input_states.len() {!self.input_states[ai - self.input_states.len()]} else {self.input_states[ai]};
+            let inclusion = self.outputs[oi].clauses[ci].automata_states[ai] > 0;
             let s : f32 = rng.sample(Uniform);
             if clause_state
             {
@@ -155,14 +156,14 @@ impl TsetlinMachine
 
     pub fn learn(&mut self, target_output_states : &Vec<bool>, s : f32, t : f32, rng : &mut ThreadRng)
     {
-        let s_inv : f32 = 1.0 / s;
-        let s_inv_conj : f32 = 1.0 - s_inv;
+        let s_inv = 1.0 / s;
+        let s_inv_conj = 1.0 - s_inv;
         for oi in 0..self.outputs.len()
         {
-            let clamped_sum : f32 = t.min((-t).max(self.outputs[oi].sum as f32));
-            let rescale : f32 = 1.0 / ((2.0 * t) as f32);
-            let probability_feedback_alpha : f32 = (t - clamped_sum) * rescale;
-            let probability_feedback_beta  : f32 = (t + clamped_sum) * rescale;
+            let clamped_sum = t.min((-t).max(self.outputs[oi].sum as f32));
+            let rescale = 1.0 / ((2.0 * t) as f32);
+            let probability_feedback_alpha = (t - clamped_sum) * rescale;
+            let probability_feedback_beta  = (t + clamped_sum) * rescale;
 
             for ci in 0..self.outputs[oi].clauses.len()
             {
@@ -200,38 +201,36 @@ impl TsetlinMachine
     }
 
     pub fn activate(&mut self, input_states : Vec<bool>) -> &Vec<bool>
-    {
-        use std::cmp::min;
+    {   
         self.input_states = input_states;
-        for oi in 0..self.outputs.len()
+        for (outputs_index, mut outputs_element) in self.outputs.iter_mut().enumerate()
         {
-            let mut sum : i32 = 0;
-            for ci in 0..self.outputs[oi].clauses.len()
+            let mut sum = 0;
+            for (clauses_index, clauses_element) in outputs_element.clauses.iter_mut().enumerate()
             {
-                let mut state : bool = true;
+                let mut state = true;
+                for cit in clauses_element.inclusions.iter()
                 {
-                    let y = &mut self.outputs[oi].clauses[ci];
-                    for cit in y.inclusions.iter()
+                    let ai = *cit;
+                    if ai >= self.input_states.len()
                     {
-                        let ai : usize = *cit;
-                        if ai >= self.input_states.len()
-                        {
-                            state = state && !self.input_states[min(self.input_states.len() - 1, ai - self.input_states.len())];
-                        }
-                        else
-                        {
-                            state = state && self.input_states[ai];
-                        }
+                        state = state && !self.input_states[min(self.input_states.len() - 1, ai - self.input_states.len())];
+                    }
+                    else
+                    {
+                        state = state && self.input_states[ai];
                     }
                 }
-                self.outputs[oi].clauses[ci].state = state;
-                let _state : i32 = if state {1} else {0};
-                sum += if ci % 2 == 0 {_state} else {-_state};
+                clauses_element.state = state;
+                {
+                    let _state = if state {1} else {0};
+                    sum += if clauses_index % 2 == 0 {_state} else {-_state};
+                }
             }
-            self.outputs[oi].sum   = sum;
-            self.output_states[oi] = sum > 0;
+            outputs_element.sum = sum;
+            self.output_states[outputs_index] = sum > 0;
         }
-        return &self.output_states;
+        &self.output_states
     }
 }
 
@@ -276,16 +275,12 @@ impl Clone for Output
 {
     fn clone(&self) -> Output
     {
-        let m : Output;
+        let c = &self.clauses;
+        Output
         {
-            let c = &self.clauses;
-            m = Output
-            {
-                clauses: c.to_vec(),
-                sum: self.sum,
-            };
+            clauses: c.to_vec(),
+            sum: self.sum,
         }
-        return m;
     }
 }
 
@@ -293,17 +288,13 @@ impl Clone for Clause
 {
     fn clone(&self) -> Clause
     {
-        let m : Clause;
+        let a = &self.automata_states;
+        let i = &self.inclusions;
+        Clause
         {
-            let a = &self.automata_states;
-            let i = &self.inclusions;
-            m = Clause
-            {
-                automata_states: a.to_vec(),
-                inclusions: i.to_vec(),
-                state: self.state,
-            };
+            automata_states: a.to_vec(),
+            inclusions: i.to_vec(),
+            state: self.state,
         }
-        return m;
     }
 }

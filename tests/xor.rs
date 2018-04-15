@@ -1,5 +1,5 @@
 extern crate tsetlin_machine;
-use tsetlin_machine::tsetlin_machine;
+use tsetlin_machine::TsetlinMachine;
 
 extern crate rand;
 use rand::thread_rng;
@@ -29,7 +29,7 @@ fn test_xor_convergence()
     .map(|x| x.iter().map(|&y| y == 1).collect::<Vec<bool>>().to_vec())
     .collect();
 
-    let mut tm = tsetlin_machine();
+    let mut tm = TsetlinMachine::new();
     tm.create(2, 2, 10);
 
     let mut rng = thread_rng();

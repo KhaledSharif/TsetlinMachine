@@ -2,7 +2,7 @@ extern crate rand;
 use rand::thread_rng;
 
 extern crate tsetlin_machine;
-use tsetlin_machine::tsetlin_machine;
+use tsetlin_machine::TsetlinMachine;
 
 extern crate csv;
 use csv::Reader;
@@ -24,7 +24,7 @@ fn main()
     println!("Inputs  length: {}, Inputs[0]  length: {}", testing_inputs.len(),  testing_inputs[0].len());
     println!("Outputs length: {}, Outputs[0] length: {}", testing_outputs.len(), testing_outputs[0].len());
 
-    let mut tm = tsetlin_machine();
+    let mut tm = TsetlinMachine::new();
     tm.create(training_inputs[0].len(), training_outputs[0].len(), 10);
 
     let mut rng = thread_rng();
